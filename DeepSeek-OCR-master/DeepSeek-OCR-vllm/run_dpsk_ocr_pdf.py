@@ -125,15 +125,14 @@ def re_match(text):
     pattern = r'(<\|ref\|>(.*?)<\|/ref\|><\|det\|>(.*?)<\|/det\|>)'
     matches = re.findall(pattern, text, re.DOTALL)
 
-
-    mathes_image = []
-    mathes_other = []
+    matches_image = []
+    matches_other = []
     for a_match in matches:
-        if '<|ref|>image<|/ref|>' in a_match[0]:
-            mathes_image.append(a_match[0])
+        if "<|ref|>image<|/ref|>" in a_match[0]:
+            matches_image.append(a_match[0])
         else:
-            mathes_other.append(a_match[0])
-    return matches, mathes_image, mathes_other
+            matches_other.append(a_match[0])
+    return matches, matches_image, matches_other
 
 
 def extract_coordinates_and_label(ref_text, image_width, image_height):
@@ -277,8 +276,8 @@ if __name__ == "__main__":
 
         with ThreadPoolExecutor(max_workers=NUM_WORKERS) as executor:
             batch_inputs = list(tqdm(
-                executor.map(process_single_image, images),
-                total=len(images),
+                    executor.map(process_single_image, images),
+                    total=len(images),
                 desc="Pre-processed images"
             ))
 
@@ -317,40 +316,44 @@ if __name__ == "__main__":
                 if SKIP_REPEAT:
                     continue
 
+            page_num = "\n<--- Page Split --->"
 
-            page_num = f'\n<--- Page Split --->'
-
-            contents_det += content + f'\n{page_num}\n'
+            contents_det += content + f"\n{page_num}\n"
 
             image_draw = img.copy()
 
-            matches_ref, matches_images, mathes_other = re_match(content)
+            matches_ref, matches_images, matches_other = re_match(content)
             # print(matches_ref)
-            result_image = process_image_with_refs(image_draw, matches_ref, jdx, output_path)
-
+            result_image = process_image_with_refs(
+                image_draw, matches_ref, jdx, output_path
+            )
 
             draw_images.append(result_image)
 
-
             for idx, a_match_image in enumerate(matches_images):
-                content = content.replace(a_match_image, f'![](images/' + str(jdx) + '_' + str(idx) + '.jpg)\n')
+                content = content.replace(
+                    a_match_image,
+                    f"![](images/" + str(jdx) + "_" + str(idx) + ".jpg)\n",
+                )
 
-            for idx, a_match_other in enumerate(mathes_other):
-                content = content.replace(a_match_other, '').replace('\\coloneqq', ':=').replace('\\eqqcolon', '=:').replace('\n\n\n\n', '\n\n').replace('\n\n\n', '\n\n')
-
+            for idx, a_match_other in enumerate(matches_other):
+                content = (
+                    content.replace(a_match_other, "")
+                    .replace("\\coloneqq", ":=")
+                    .replace("\\eqqcolon", "=:")
+                    .replace("\n\n\n\n", "\n\n")
+                    .replace("\n\n\n", "\n\n")
+                )
 
             # contents += content + f'\n{page_num}\n'
             contents += content
 
-
             jdx += 1
 
-        with open(mmd_det_path, 'w', encoding='utf-8') as afile:
+        with open(mmd_det_path, "w", encoding="utf-8") as afile:
             afile.write(contents_det)
 
-        with open(mmd_path, 'w', encoding='utf-8') as afile:
+        with open(mmd_path, "w", encoding="utf-8") as afile:
             afile.write(contents)
 
-
         pil_to_pdf_img2pdf(draw_images, pdf_out_path)
-
